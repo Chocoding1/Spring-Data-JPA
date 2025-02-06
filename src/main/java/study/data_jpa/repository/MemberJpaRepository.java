@@ -5,6 +5,9 @@ import jakarta.persistence.PersistenceContext;
 import org.springframework.stereotype.Repository;
 import study.data_jpa.entity.Member;
 
+import java.util.List;
+import java.util.Optional;
+
 @Repository
 public class MemberJpaRepository {
 
@@ -18,6 +21,31 @@ public class MemberJpaRepository {
     public Member save(Member member) {
         em.persist(member); // 저장
         return member;
+    }
+
+    public void delete(Member member) {
+        em.remove(member);
+    }
+
+    public List<Member> findAll() {
+        return em.createQuery("select m from Member m", Member.class)
+                .getResultList();
+    }
+
+    public Optional<Member> findById(Long id) {
+        Member member = em.find(Member.class, id);
+
+        return Optional.ofNullable(member);
+        /**
+         * Optional.ofNullable
+         * 해당 값이 null X -> 해당 값을 가지는 Optional 객체 반환
+         * 해당 값이 null O -> 빈 Optional 객체 반환
+         */
+    }
+
+    public long count() {
+        return em.createQuery("select count(m) from Member m", Long.class) // count 결과값은 Long 타입
+                .getSingleResult();
     }
 
     public Member find(Long id) {

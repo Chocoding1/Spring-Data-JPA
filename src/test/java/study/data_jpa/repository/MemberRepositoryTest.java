@@ -1,5 +1,7 @@
 package study.data_jpa.repository;
 
+import org.assertj.core.api.Assertions;
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -7,18 +9,26 @@ import org.springframework.test.annotation.Rollback;
 import org.springframework.transaction.annotation.Transactional;
 import study.data_jpa.entity.Member;
 
+import java.util.List;
+
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.*;
 
 @SpringBootTest
 @Transactional
-@Rollback(false)
+//@Rollback(false)
 class MemberRepositoryTest {
 
+    /**
+     * memberRepository는 단순 인터페이스인데 어떻게 save(), findById() 메서드를 사용할 수 있나?
+     * Spring Data JPA가 해당 인터페이스를 보고 JpaRepository 인터페이스를 상속받고 있으면, Proxy 객체를 생성해서 주입해준다.
+     * 따라서 개발자는 Spring Data JPA 관련 인터페이스만 만들어 놓으면, 관련 메서드를 사용할 수 있다.
+     */
     @Autowired
     MemberRepository memberRepository;
 
     @Test
+    @DisplayName("회원 저장 테스트")
     void save() {
         //given
         Member member = new Member("memberA");
@@ -39,6 +49,81 @@ class MemberRepositoryTest {
         //then
         assertThat(findMember.getId()).isEqualTo(member.getId());
         assertThat(findMember.getUsername()).isEqualTo(member.getUsername());
+    }
+
+    @Test
+    @DisplayName("단건 조회 테스트")
+    void findOne() {
+        //given
+        Member member1 = new Member("member1");
+        Member member2 = new Member("member2");
+
+        memberRepository.save(member1);
+        memberRepository.save(member2);
+
+        //when
+        Member findMember1 = memberRepository.findById(member1.getId()).orElse(null);
+        Member findMember2 = memberRepository.findById(member2.getId()).orElse(null);
+
+        //then
+        assertThat(findMember1).isEqualTo(member1);
+        assertThat(findMember2).isEqualTo(member2);
+    }
+
+    @Test
+    @DisplayName("다중 조회 테스트")
+    void findAll() {
+        //given
+        Member member1 = new Member("member1");
+        Member member2 = new Member("member2");
+
+        memberRepository.save(member1);
+        memberRepository.save(member2);
+
+        //when
+        List<Member> result = memberRepository.findAll();
+        long count = memberRepository.count();
+
+        //then
+        assertThat(result.size()).isEqualTo(2);
+        assertThat(count).isEqualTo(2);
+    }
+
+    @Test
+    @DisplayName("count() 테스트")
+    void count() {
+        //given
+        Member member1 = new Member("member1");
+        Member member2 = new Member("member2");
+
+        memberRepository.save(member1);
+        memberRepository.save(member2);
+
+        //when
+        long count = memberRepository.count();
+
+        //then
+        assertThat(count).isEqualTo(2);
+    }
+
+    @Test
+    @DisplayName("회원 삭제 테스트")
+    void delete() {
+        //given
+        Member member1 = new Member("member1");
+        Member member2 = new Member("member2");
+
+        memberRepository.save(member1);
+        memberRepository.save(member2);
+
+        //when
+        memberRepository.delete(member1);
+        memberRepository.delete(member2);
+
+        long count = memberRepository.count();
+
+        //then
+        assertThat(count).isEqualTo(0);
     }
 
 }
