@@ -1,18 +1,15 @@
 package study.data_jpa.repository;
 
-import org.assertj.core.api.Assertions;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.test.annotation.Rollback;
 import org.springframework.transaction.annotation.Transactional;
 import study.data_jpa.entity.Member;
 
 import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.junit.jupiter.api.Assertions.*;
 
 @SpringBootTest
 @Transactional
@@ -157,6 +154,24 @@ class MemberRepositoryTest {
 
         //when
         List<Member> result = memberRepository.findByUsername("member1");
+
+        //then
+        assertThat(result.size()).isEqualTo(1);
+        assertThat(result.get(0).getAge()).isEqualTo(10);
+    }
+
+    @Test
+    @DisplayName("@Query 사용한 회원 조회")
+    void findByUsernameWithQueryAnnotation() {
+        //given
+        Member member1 = new Member("member1", 10);
+        Member member2 = new Member("member2", 20);
+
+        memberRepository.save(member1);
+        memberRepository.save(member2);
+
+        //when
+        List<Member> result = memberRepository.findMember("member1", 10);
 
         //then
         assertThat(result.size()).isEqualTo(1);
