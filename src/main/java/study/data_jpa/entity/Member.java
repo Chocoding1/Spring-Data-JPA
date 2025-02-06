@@ -38,6 +38,11 @@ public class Member {
         }
     }
 
+    public Member(String username, int age) {
+        this.username = username;
+        this.age = age;
+    }
+
     // 연관관계 메서드
     public void changeTeam(Team team) {
         this.team = team;
