@@ -62,4 +62,18 @@ public class MemberJpaRepository {
                 .setParameter("age", age)
                 .getResultList();
     }
+
+    /**
+     * 단순 JPA에서 NamedQuery 사용
+     * em.createNamedQuery() 메서드 사용
+     * 파라미터로 JPQL 문법 대신 Member 엔티티에서 지정해준 NamedQuery명 전달
+     *
+     * 단순 JPA 사용해서 NamedQuery 사용하면 사용 안 할 때와 동일하게 코드를 쳐줘야 하고,
+     * 심지어는 쿼리를 Entity에 작성해야 해서 보기 안 좋다.
+     */
+    public List<Member> findByUsername(String username) {
+        return em.createNamedQuery("Member.findByUsername", Member.class)
+                .setParameter("username", username)
+                .getResultList();
+    }
 }

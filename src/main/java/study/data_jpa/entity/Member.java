@@ -13,6 +13,23 @@ import lombok.*;
  */
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 @ToString(of = {"id", "username", "age"}) // toString() 어노테이션
+/**
+ * NamedQuery
+ * NamedQuery는 기본적으로 정적 쿼리이기 때문에 어플리케이션 로딩 시점에 파싱을 할 수 있다.
+ * 그래서 이 JPQL을 SQL로 다 만들어놓고 시작한다.
+ *
+ * <장점>
+ * * JPQL 쿼리에 오타가 있으면, 어플리케이션 로딩 시점에 오류 발생 (미리 파싱을 하기 때문)
+ * Repository 클래스에 있는 단순 JPQL 쿼리는 문자열로 취급되기 때문에 오타가 들어가도 어플리케이션 로딩 시점에 오류가 발생하지 않는다.
+ *
+ * <단점>
+ * * JPQL이 Repository에 모여있지 않고, Entity에 따로 분리되어 있어 깔끔하지 않다.
+ * * Entity에서 NamedQuery를 작성해도 Repository에서 다시 작성해줘야 한다. (한 번 작성할 거 두 번 작성)
+ */
+@NamedQuery(
+        name="Member.findByUsername",
+        query="select m from Member m where m.username = :username"
+)
 public class Member {
 
     @Id

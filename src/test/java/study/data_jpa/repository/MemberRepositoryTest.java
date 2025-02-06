@@ -145,4 +145,21 @@ class MemberRepositoryTest {
         assertThat(result.get(0).getAge()).isEqualTo(20);
     }
 
+    @Test
+    @DisplayName("NamedQuery 사용한 회원 조회")
+    void findByUsernameWithNamedQuery() {
+        //given
+        Member member1 = new Member("member1", 10);
+        Member member2 = new Member("member2", 20);
+
+        memberRepository.save(member1);
+        memberRepository.save(member2);
+
+        //when
+        List<Member> result = memberRepository.findByUsername("member1");
+
+        //then
+        assertThat(result.size()).isEqualTo(1);
+        assertThat(result.get(0).getAge()).isEqualTo(10);
+    }
 }
