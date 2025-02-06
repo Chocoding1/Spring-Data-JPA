@@ -24,7 +24,7 @@ public interface MemberRepository extends JpaRepository<Member, Long>
 > 동적 쿼리는 Querydsl을 사용한다고 한다.
 
 
-#### 1. 메소드명으로 쿼리 생성
+### 1. 메소드명으로 쿼리 생성
 - 메서드명을 관례에 맞춰서 작성하면 Spring Data JPA가 해당 메서드명을 보고 자동으로 JPQL 쿼리를 생성한다.
 ```java
 List<Member> findByUsernameAndAgeGreaterThan(String username, int age);
@@ -45,7 +45,7 @@ List<Member> findByUsernameAndAgeGreaterThan(String username, int age);
 - 조회 조건이 많아지면 메서드명이 너무 길어진다.
 
 
-#### 2. NamedQuery로 쿼리 생성
+### 2. NamedQuery로 쿼리 생성
 - Entity 클래스에 직접 쿼리를 작성하는 방법
 - 실무에서는 잘 사용하지 않는 방법
 ```java
@@ -96,7 +96,7 @@ List<Member> findByUsername(@Param("username") String username);
 - JPQL이 Repository에 모여있지 않고, Entity에 따로 분리되어 있어 깔끔하지 않다.
 - Entity에서 NamedQuery를 작성해도 Repository에서 다시 작성해줘야 한다. (한 번 작성할 일 두 번 작성)
 
-#### 3. @Query로 쿼리 생성
+### 3. @Query로 쿼리 생성
 - 1번과 2번의 단점을 보완한 방법
 - 실무에서 많이 사용하는 방법
 ```java
