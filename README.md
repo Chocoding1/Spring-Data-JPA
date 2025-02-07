@@ -124,3 +124,23 @@ List<Member> findMember(@Param("username") String username, @Param("age")
 <동적 쿼리>
 <br>
 - 동적 쿼리는 Querydsl 사용
+---
+### <@Query 사용하여 단순 값 조회>
+```java
+// 회원명 조회
+@Query("select m.username from Member m")
+List<String> findUsernameList();
+```
+### <@Query 사용하여 DTO 조회>
+```java
+@Query("select new study.data_jpa.dto.MemberDto(m.id, m.username, t.name) from Member m join m.team t")
+List<MemberDto> findMemberDto();
+```
+- DTO 조회 시에는 반드시 DTO 생성자로 조회해야 한다. (JPA와 동일)
+
+### <@Query에 Collection 파라미터 사용>
+```java
+@Query("select m from Member m where m.username in :names")
+List<Member> findByNames(@Param("names") List<String> names);
+```
+- Collection 타입으로 in절에 바인딩할 수 있다.
