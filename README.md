@@ -113,3 +113,14 @@ List<Member> findMember(@Param("username") String username, @Param("age")
 - 메서드명을 간략하게 작성해도 된다. (1번 단점 보완)
 - Entity 클래스에 JPQL을 작성하지 않아도 된다. (2번 단점 보완)
 - JPQL에 오타가 있으면 어플리케이션 로딩 시점에 오류가 발생한다.
+---
+#### 정리
+<정적 쿼리>
+<br>
+- 실무에서는 간단한 쿼리는 메서드명을 이용한 쿼리 생성 방법을 사용하고,
+- 조금 복잡한 쿼리는 @query를 사용한다고 한다.
+- NamedQuery는 잘 사용하지 않는 편
+
+<동적 쿼리>
+<br>
+- 동적 쿼리는 Querydsl 사용
