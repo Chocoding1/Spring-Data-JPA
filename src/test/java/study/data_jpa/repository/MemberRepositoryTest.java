@@ -5,8 +5,12 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.transaction.annotation.Transactional;
+import study.data_jpa.dto.MemberDto;
 import study.data_jpa.entity.Member;
+import study.data_jpa.entity.Team;
 
+import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -23,6 +27,8 @@ class MemberRepositoryTest {
      */
     @Autowired
     MemberRepository memberRepository;
+    @Autowired
+    TeamRepository teamRepository;
 
     @Test
     @DisplayName("회원 저장 테스트")
@@ -176,5 +182,61 @@ class MemberRepositoryTest {
         //then
         assertThat(result.size()).isEqualTo(1);
         assertThat(result.get(0).getAge()).isEqualTo(10);
+    }
+
+    @Test
+    @DisplayName("@Query 사용하여 단순 값 조회(회원명 조회)")
+    void findUsernameList() {
+        //given
+        Member member1 = new Member("member1", 10);
+        Member member2 = new Member("member2", 20);
+
+        memberRepository.save(member1);
+        memberRepository.save(member2);
+
+        //when
+        List<String> usernameList = memberRepository.findUsernameList();
+
+        //then
+        assertThat(usernameList.size()).isEqualTo(2);
+        assertThat(usernameList).contains("member1", "member2");
+    }
+
+    @Test
+    @DisplayName("@Query 사용하여 DTO 조회")
+    void findMemberDto() {
+        //given
+        Team teamA = new Team("teamA");
+        teamRepository.save(teamA);
+
+        Member member1 = new Member("member1", 10, teamA);
+
+        memberRepository.save(member1);
+
+        //when
+        List<MemberDto> result = memberRepository.findMemberDto();
+
+        //then
+        assertThat(result.size()).isEqualTo(1);
+        assertThat(result.get(0).getTeamName()).isEqualTo("teamA");
+    }
+
+    @Test
+    @DisplayName("@Query에 in절 파라미터로 Collection 전달")
+    void findByNames() {
+        //given
+        Member member1 = new Member("member1", 10);
+        Member member2 = new Member("member2", 20);
+
+        memberRepository.save(member1);
+        memberRepository.save(member2);
+
+
+        //when
+        List<Member> result = memberRepository.findByNames(Arrays.asList("member1", "member2"));
+
+        //then
+        assertThat(result.size()).isEqualTo(2);
+        assertThat(result).contains(member1, member2);
     }
 }
