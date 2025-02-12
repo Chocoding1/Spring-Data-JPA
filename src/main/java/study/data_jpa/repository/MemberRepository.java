@@ -1,5 +1,7 @@
 package study.data_jpa.repository;
 
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -7,6 +9,7 @@ import study.data_jpa.dto.MemberDto;
 import study.data_jpa.entity.Member;
 
 import java.util.List;
+import java.util.Optional;
 
 /**
  * JpaRepository를 상속받으면, @Repository가 없어도 Spring Data JPA가 알아서 빈으로 등록해준다.
@@ -76,4 +79,18 @@ public interface MemberRepository extends JpaRepository<Member, Long> {
      */
     @Query("select m from Member m where m.username in :names")
     List<Member> findByNames(@Param("names") List<String> names);
+
+    /**
+     * 다양한 반환 타입 가능
+     * Spinrg Data JPA는 유연한 반환 타입을 지원한다.
+     */
+    List<Member> findListByUsername(String username); // 컬렉션 반환
+    Member findMemberByUsername(String username); // 단건 반환
+    Optional<Member> findOptionalByUsername(String username); // 단건 Optional 반환
+
+    /**
+     * 페이징
+     */
+    Page<Member> findByAge(int age, Pageable pageable);
+
 }

@@ -4,6 +4,10 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Slice;
+import org.springframework.data.domain.Sort;
 import org.springframework.transaction.annotation.Transactional;
 import study.data_jpa.dto.MemberDto;
 import study.data_jpa.entity.Member;
@@ -238,5 +242,87 @@ class MemberRepositoryTest {
         //then
         assertThat(result.size()).isEqualTo(2);
         assertThat(result).contains(member1, member2);
+    }
+
+    @Test
+    @DisplayName("다양한 반환 타입")
+    void returnType() {
+        //given
+        Member member1 = new Member("member1", 10);
+        Member member2 = new Member("member2", 20);
+
+        memberRepository.save(member1);
+        memberRepository.save(member2);
+
+
+        //when
+        List<Member> result = memberRepository.findListByUsername("member1");
+        Member findMember = memberRepository.findMemberByUsername("member1");
+        Member optionalMember = memberRepository.findOptionalByUsername("member2").orElse(null);
+
+        //then
+        assertThat(result.size()).isEqualTo(1);
+        assertThat(result).contains(member1);
+        assertThat(findMember).isEqualTo(member1);
+        assertThat(optionalMember.getAge()).isEqualTo(20);
+    }
+
+    @Test
+    @DisplayName("Spring Data JPA 활용한 paging")
+    void paging() {
+        //given
+        memberRepository.save(new Member("member1", 10));
+        memberRepository.save(new Member("member2", 10));
+        memberRepository.save(new Member("member3", 10));
+        memberRepository.save(new Member("member4", 10));
+        memberRepository.save(new Member("member5", 10));
+        memberRepository.save(new Member("member6", 10));
+        memberRepository.save(new Member("member7", 10));
+
+        int age = 10;
+        // 0페이지에서 3개 가져와(Data JPA는 페이지를 0번부터 센다)
+        PageRequest pageRequest = PageRequest.of(2, 3, Sort.by(Sort.Direction.DESC, "username"));
+
+        //when
+        Page<Member> page = memberRepository.findByAge(age, pageRequest);
+
+        //then
+        List<Member> content = page.getContent(); // 가져온 페이지에서 안의 내용들을 꺼내는 함수
+        long totalElements = page.getTotalElements(); // totalCount
+
+        assertThat(content.size()).isEqualTo(1);
+        assertThat(totalElements).isEqualTo(7);
+        assertThat(page.getNumber()).isEqualTo(2);
+        assertThat(page.getTotalPages()).isEqualTo(3);
+        assertThat(page.isLast()).isTrue();
+        assertThat(page.hasNext()).isFalse();
+    }
+
+    @Test
+    @DisplayName("Spring Data JPA 활용한 slicing")
+    void slicing() {
+        //given
+        memberRepository.save(new Member("member1", 10));
+        memberRepository.save(new Member("member2", 10));
+        memberRepository.save(new Member("member3", 10));
+        memberRepository.save(new Member("member4", 10));
+        memberRepository.save(new Member("member5", 10));
+        memberRepository.save(new Member("member6", 10));
+        memberRepository.save(new Member("member7", 10));
+
+        int age = 10;
+        // 0페이지에서 3개 가져와(Data JPA는 페이지를 0번부터 센다)
+        PageRequest pageRequest = PageRequest.of(0, 3, Sort.by(Sort.Direction.DESC, "username"));
+
+        //when
+        Slice<Member> page = memberRepository.findByAge(age, pageRequest);
+
+        //then
+        List<Member> content = page.getContent(); // 가져온 페이지에서 안의 내용들을 꺼내는 함수
+
+        assertThat(content.size()).isEqualTo(3);
+        assertThat(page.getNumber()).isEqualTo(2);
+        assertThat(page.isLast()).isTrue();
+        assertThat(page.hasNext()).isFalse();
     }
 }
