@@ -292,3 +292,52 @@ long totalElements = page.getTotalElements(); // totalCount
 // MemberRepository
 Slice<Member> findByAge(int age, Pageable pageable);
 ```
+```java
+// MemberRepositoryTest
+@Test
+@DisplayName("Spring Data JPA 활용한 slicing")
+void paging() {
+        //given
+        memberRepository.save(new Member("member1", 10));
+        memberRepository.save(new Member("member2", 10));
+        memberRepository.save(new Member("member3", 10));
+        memberRepository.save(new Member("member4", 10));
+        memberRepository.save(new Member("member5", 10));
+        memberRepository.save(new Member("member6", 10));
+        memberRepository.save(new Member("member7", 10));
+        
+        int age = 10;
+        // 0페이지에서 3개 가져와(Data JPA는 페이지를 0번부터 센다)
+        PageRequest pageRequest = PageRequest.of(0, 3, Sort.by(Sort.Direction.DESC, "username"));
+        
+        //when
+        Slice<Member> page = memberRepository.findByAge(age, pageRequest);
+        
+        //then
+        List<Member> content = page.getContent(); // 가져온 페이지에서 안의 내용들을 꺼내는 함수
+        // long totalElements = page.getTotalElements(); // totalCount (사용 불가)
+        
+        assertThat(content.size()).isEqualTo(3); // 가져온 데이터의 개수
+        // assertThat(totalElements).isEqualTo(7); // 전체 개수 (사용 불가)
+        assertThat(page.getNumber()).isEqualTo(1); // 현재 페이지 수
+        // assertThat(page.getTotalPages()).isEqualTo(3); // 전체 페이지 수 (사용 불가)
+        assertThat(page.isFirst()).isTrue(); // 현재 페이지가 첫 번째 페이지인지
+        assertThat(page.hasNext()).isTrue(); // 다음 페이지가 존재하는지
+    }
+```
+- 사용법은 Page와 동일하다.
+- 그러나 다른 점은 위의 PageRequest를 초기화할 때, 3개를 가져온다고 했지만, 실제 쿼리에는 4개를 가져오는 쿼리를 날린다.
+- 그렇게 다음 페이지의 여부만 판단하는 것이 Slice의 특징이다.
+- 또한 totalCount 쿼리를 날리지 않기 때문에 totalCount와 관련된 메서드는 사용할 수 없다.
+
+**List**
+- 단순히 몇 개의 데이터만 가져오고 싶고, 그 뒤에 페이지가 더 존재하는지 여부는 알 필요가 없을 때 사용하면 된다.
+- 당연히 페이지 관련 메서드는 사용할 수 없다.
+
+**<paging 결과를 DTO로 변환>**
+- api의 경우, Entity를 그대로 반환하면 절대 안 된다.
+- 이럴 때 paging 결과를 DTO로 변환할 수 있다.
+```java
+Page<MemberDto> dtoPage = page.map(member -> new MemberDto(member.getId(), member.getName(), ...));
+```
+- paging의 결과값을 map()을 통해 DTO로 변환해주기만 하면 된다.
