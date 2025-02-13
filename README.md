@@ -144,3 +144,37 @@ List<MemberDto> findMemberDto();
 List<Member> findByNames(@Param("names") List<String> names);
 ```
 - Collection 타입으로 in절에 바인딩할 수 있다.
+---
+### <반환 타입>
+- Spring Data JPA는 유연한 반환 타입을 지원한다.
+```java
+List<Member> findListByUsername(String username); // 컬렉션 반환
+Member findMemberByUsername(String username); // 단건 반환
+Optional<Member> findOptionalByUsername(String username); // 단건 Optional 반환
+```
+#### <주의할 점>
+**1. List 조회 시 조건 파라미터를 잘못 입력했을 때 반환 값은 null이 아닌 Empty List이다.**
+```java
+// MemberRepository
+public interface MemberRepository Extends JpaRepository<Member, Long> {
+        List<Member> findListByUsername(String username); // 컬렉션 반환
+}
+// 안 좋은 코드
+List<Member> result = memberRepository.findListByUsername("aaa");
+if (result != null) {
+        '''
+}
+// 권장 코드
+List<Member> result = memberRepository.findListByUsername("aaa");
+if (result.size() == 0) {
+        '''
+}
+```
+  - List 포함 Collection은 null을 반환하지 않기 때문에 그에 맞는 코드를 짜자.<br>
+  
+**2. 단건 조회(getSingleResult()) 시 값이 없을 때는 Optional을 사용하자.**
+  - 순수 JPA의 경우 단건 조회 시 값이 없을 때는 NoResultExceptions을 터뜨린다.
+  - Spring Data JPA는 이 예외를 알아서 처리해서 null로 반환한다.
+  - 예외가 터지는 것보다는 null이 넘어오는 것이 훨씬 낫다.
+  - Java 8부터 Optional이 생겼으므로, Optional을 사용해서 처리하는 것이 좋다.
+---
