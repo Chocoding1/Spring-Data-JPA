@@ -159,6 +159,7 @@ Optional<Member> findOptionalByUsername(String username); // 단건 Optional 반
 public interface MemberRepository Extends JpaRepository<Member, Long> {
         List<Member> findListByUsername(String username); // 컬렉션 반환
 }
+
 // 안 좋은 코드
 List<Member> result = memberRepository.findListByUsername("aaa");
 if (result != null) {
@@ -178,3 +179,116 @@ if (result.size() == 0) {
   - 예외가 터지는 것보다는 null이 넘어오는 것이 훨씬 낫다.
   - Java 8부터 Optional이 생겼으므로, Optional을 사용해서 처리하는 것이 좋다.
 ---
+### <Paging>
+- 검색 조건 : 나이
+- 정렬 조건 : 이름 - 내림차순
+
+**<순수 JPA 활용한 paging>**
+```java
+// MemberRepository
+public List<Member> findByPage(int age, int offset, int limit) {
+        return em.createQuery("select m from Member m where m.age = :age order by m.username desc", Member.class)
+                .setParameter("age", age)
+                .setFirstResult(offset) // 몇 번째부터 가져올 지
+                .setMaxResults(limit) // 몇 개를 가져올 지
+                .getResultList();
+  }
+/**
+* 보통 페이징을 할 때, 현재 있는 페이지가 몇 번째 페이지인지 계산을 하기 위해 전체 개수도 계산을 해야한다.
+* 단순 개수를 계산하는 것이기 때문에 정렬은 할 필요 없다.
+*/
+public long totalCount(int age) {
+        return em.createQuery("select count(m) from Member m where m.age = :age", Long.class)
+                .setParameter("age", age)
+                .getSingleResult();
+    }
+```
+- 순수 JPA를 활용하여 paging을 할 때는 totalCount를 계산하여 직접 페이지 수를 계산해줘야 한다.
+- 해당 페이지가 최초 페이지인지, 현재 페이지가 마지막 페이지인지 등..
+
+**<Spring Data JPA 활용한 paging>**
+- Spring Data JPA는 paging과 sorting을 표준화했다.
+
+**<paging & sorting 파라미터>**
+```java
+org.springframework.data.domain.Sort // 정렬 기능
+org.springframework.data.domain.Pageable // 페이징 기능(내부에 Sort 포함)
+```
+- 위의 두 가지 인터페이스로 정렬과 페이징을 통일시켰다.
+
+**<반환 타입>**
+```java
+org.springframework.data.domain.Page // 추가 count 쿼리 결과를 포함하는 페이징
+org.springframework.data.domain.Slice // 추가 count 쿼리 없이 다음 페이지 여부만 확인 가능(내부적으로 limit + 1 조회)
+List(Java Collections) // 추가 count 쿼리 없이 결과만 반환
+```
+
+**<활용 예제>**<br>
+
+**Page**
+```java
+// MemberRepository
+Page<Member> findByAge(int age, Pageable pageable);
+```
+```java
+// MemberRepositoryTest
+@Test
+@DisplayName("Spring Data JPA 활용한 paging")
+void paging() {
+        //given
+        memberRepository.save(new Member("member1", 10));
+        memberRepository.save(new Member("member2", 10));
+        memberRepository.save(new Member("member3", 10));
+        memberRepository.save(new Member("member4", 10));
+        memberRepository.save(new Member("member5", 10));
+        memberRepository.save(new Member("member6", 10));
+        memberRepository.save(new Member("member7", 10));
+        
+        int age = 10;
+        // 0페이지에서 3개 가져와(Data JPA는 페이지를 0번부터 센다)
+        PageRequest pageRequest = PageRequest.of(0, 3, Sort.by(Sort.Direction.DESC, "username"));
+        
+        //when
+        Page<Member> page = memberRepository.findByAge(age, pageRequest);
+        
+        //then
+        List<Member> content = page.getContent(); // 가져온 페이지에서 안의 내용들을 꺼내는 함수
+        long totalElements = page.getTotalElements(); // totalCount
+        
+        assertThat(content.size()).isEqualTo(3); // 가져온 데이터의 개수
+        assertThat(totalElements).isEqualTo(7); // 전체 개수
+        assertThat(page.getNumber()).isEqualTo(1); // 현재 페이지 수
+        assertThat(page.getTotalPages()).isEqualTo(3); // 전체 페이지 수
+        assertThat(page.isFirst()).isTrue(); // 현재 페이지가 첫 번째 페이지인지
+        assertThat(page.hasNext()).isTrue(); // 다음 페이지가 존재하는지
+    }
+```
+1. Pageable 인터페이스의 구현체인 PageRequest 객체를 만든다.
+```java
+// username으로 내림차순 정렬 후, 0 페이지에서 3개의 데이터 가져와. (페이지는 0부터 시작)
+PageRequest pageRequest = PageRequest.of(0, 3, Sort.by(Sort.Direction.DESC, "username"));
+```
+2. paging 메서드를 호출하면서 파라미터로 PageRequest를 같이 넘겨준다. (보통 PageRequest를 많이 쓴다고 한다.)
+```java
+Page<Member> page = memberRepository.findByAge(age, pageRequest);
+```
+3. 반환된 Page 객체를 가지고 원하는 작업을 진행한다.
+```java
+List<Member> content = page.getContent(); // 가져온 페이지에서 안의 내용들을 꺼내는 함수
+long totalElements = page.getTotalElements(); // totalCount
+```
+- Spring Data JPA의 편리한 점은 totalCount를 직접 계산할 필요가 없다는 것이다.
+- 반환 타입이 Page이면 totalCount 쿼리까지 같이 날린다. 또한 totalCount 쿼리를 날릴 때는 알아서 정렬을 하지 않는다. (최적화)
+- 그래서 Page 객체에 getTotalElements() 메서드만 호출하면 전체 개수를 알 수 있다.
+- 그 외에도 다양한 메서드들을 편리하게 사용할 수 있다.
+
+**Slice**
+- paging을 하되, totalCount는 계산하지 않는 방법
+- 모바일의 경우, 스크롤을 쭉 내리다 보면 페이지 번호가 있는 것이 아니라 **더보기** 버튼이 있는 경우를 본 적이 있을 것이다.
+- 이렇게 페이지 번호를 매기지 않아도 될 때 쓰는 것이 Slice이다.
+- Slice는 totalCount를 계산하지 않는 대신 다음 페이지가 있는지는 알아야 한다. (그래야 더보기 버튼을 보여줄지 말지 결정할 수 있으니까)
+- 그래서 Slice는 limit보다 1개 더 가져오는 쿼리를 날린다.
+```java
+// MemberRepository
+Slice<Member> findByAge(int age, Pageable pageable);
+```
