@@ -179,7 +179,7 @@ if (result.size() == 0) {
   - 예외가 터지는 것보다는 null이 넘어오는 것이 훨씬 낫다.
   - Java 8부터 Optional이 생겼으므로, Optional을 사용해서 처리하는 것이 좋다.
 ---
-### <Paging>
+### <Paging & Sorting>
 - 검색 조건 : 나이
 - 정렬 조건 : 이름 - 내림차순
 
@@ -341,3 +341,43 @@ void paging() {
 Page<MemberDto> dtoPage = page.map(member -> new MemberDto(member.getId(), member.getName(), ...));
 ```
 - paging의 결과값을 map()을 통해 DTO로 변환해주기만 하면 된다.
+---
+### <벌크성 수정 쿼리>
+**<순수 JPA 활용한 벌크 연산>**
+```java
+// 특정 나이 이상 사람들의 나이 + 1
+public int bulkAgePlus(int age) {
+        // 수정된 데이터 수 반환
+        return em.createQuery("update Member m set m.age = m.age + 1 where m.age >= :age")
+                .setParameter("age", age)
+                .executeUpdate();
+    }
+```
+- 다른 쿼리와 달리 executeUpdate() 메서드를 호출하면 벌크성 수정 쿼리를 날린다.
+- 반환값은 수정한 데이터의 수이다.
+
+**<Spring Data JPA 활용한 벌크 연산>**
+```java
+// 특정 나이 이상 사람들의 나이 + 1
+@Modifying(clearAutomatically = true)
+@Query("update Member m set m.age = m.age + 1 where m.age >= :age")
+int bulkAgePlus(@Param("age") int age);
+```
+- Spring Data JPA에서는 벌크성 수정 쿼리를 날릴 때, @Modifying 어노테이션을 붙여야 한다.
+- 이 어노테이션을 붙여야 JPA의 executeUpdate() 메서드를 실행한다.
+- 붙이지 않으면 getSingleResult()나 getResultList()를 실행한다.
+
+<주의할 점>
+- 벌크 연산은 영속성 컨텍스트에 접근해서 데이터를 변경하는 것이 아니라 직접 DB에 접근해서 데이터를 변경한다.
+- 때문에 벌크 연산을 수행한 후에는 영속성 컨텍스트를 초기화(em.clear)시켜 데이터 불일치 문제를 일으키지 않도록 해야 한다.
+- 예를 들어 나이가 20인 회원을 save하면 현재 영속성 컨텍스트에 20살의 회원이 올라간다.
+- 그 뒤에 벌크 연산으로 나이를 1살씩 더하면 해당 벌크 연산은 DB에 직접 접근하여 회원의 나이를 21살로 변경한다. (물론 변경 전에 em.flush를 통해 DB에 우선 저장을 한다.)
+- 그러나 영속성 컨텍스트에는 해당 회원의 나이가 20살 그대로 있는 상태이다.
+- 이 때 만약 이 회원의 나이를 조회한다면 21살이 아닌 20살로 나올 것이다. (영속성 컨텍스트에 존재하는 회원을 우선적으로 가져오니까)
+- 이러한 이유로 벌크 연산 후에는 영속성 컨텍스트를 비워줘야 한다.
+- 영속성 컨텍스트를 초기화하는 방법에는 em.clear도 있지만 더 깔끔한 방법은 @Modifying에 설정하는 방법이다.
+- @Modifying은 clearAutomatically라는 옵션을 설정할 수 있다. (default = false)
+
+<권장법>
+1. 영속성 컨텍스트 안에 엔티티가 없는 상태에서 벌크 연산을 먼저 수행
+2. 영속성 컨텍스트에 엔티티가 존재한다면 벌크 연산 직후 영속성 컨텍스트 초기화
