@@ -3,6 +3,7 @@ package study.data_jpa.repository;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import study.data_jpa.dto.MemberDto;
@@ -93,4 +94,30 @@ public interface MemberRepository extends JpaRepository<Member, Long> {
      */
     Page<Member> findByAge(int age, Pageable pageable);
 
+    /**
+     * 벌크 연산
+     * 벌크 연산 쿼리는 @Modifying 어노테이션을 붙여야 한다.
+     * 이 어노테이션을 붙여야 JPA의 executeUpdate()를 실행한다.
+     * 붙이지 않으면 getSingleResult()나 getResultList()를 실행한다.
+     */
+    /**
+     * 주의점
+     * 벌크 연산은 영속성 컨텍스트에 접근해서 데이터를 변경하는 것이 아니라 직접 DB에 접근해서 데이터를 변경한다.
+     * 때문에 벌크 연산을 수행한 후에는 영속성 컨텍스트를 초기화(em.clear)시켜 데이터 불일치 문제를 일으키지 않도록 해야 한다.
+     * 예를 들어 나이가 20인 회원을 save하면 현재 영속성 컨텍스트에 20살의 회원이 저장된다.
+     * 그 뒤에 벌크 연산으로 나이를 1살씩 더하면 해당 벌크 연산은 DB에 직접 접근하여 회원의 나이를 21살로 변경한다. (물론 변경 전에 em.flush를 통해 DB에 우선 저장을 한다.)
+     * 그러나 영속성 컨텍스트에는 해당 회원의 나이가 20살 그대로 있는 상태이다.
+     * 이 때 만약 이 회원의 나이를 조회한다면 21살이 아닌 20살로 나올 것이다. (영속성 컨텍스트에 존재하는 회원을 우선적으로 가져오니까)
+     * 이러한 이유로 벌크 연산 후에는 영속성 컨텍스트를 비워줘야 한다.
+     * em.clear도 있지만 더 깔끔한 방법은 @Modifying에 설정하는 방법이다.
+     * @Modifying은 clearAutomatically라는 옵션을 설정할 수 있다. (default = false)
+     */
+    /**
+     * 권장법
+     * 1. 영속성 컨텍스트 안에 엔티티가 없는 상태에서 벌크 연산을 먼저 수행
+     * 2. 영속성 컨텍스트에 엔티티가 존재한다면 벌크 연산 직후 영속성 컨텍스트 초기화
+     */
+    @Modifying(clearAutomatically = true)
+    @Query("update Member m set m.age = m.age + 1 where m.age >= :age")
+    int bulkAgePlus(@Param("age") int age);
 }

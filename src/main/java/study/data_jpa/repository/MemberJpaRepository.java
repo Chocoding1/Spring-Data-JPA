@@ -90,4 +90,15 @@ public class MemberJpaRepository {
                 .setParameter("age", age)
                 .getSingleResult();
     }
+
+    /**
+     * 벌크 연산
+     * 특정 나이 이상 사람들의 나이를 + 1
+     */
+    public int bulkAgePlus(int age) {
+        // 수정된 데이터 수 반환
+        return em.createQuery("update Member m set m.age = m.age + 1 where m.age >= :age")
+                .setParameter("age", age)
+                .executeUpdate();
+    }
 }
