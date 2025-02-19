@@ -113,7 +113,9 @@ List<Member> findMember(@Param("username") String username, @Param("age")
 - 메서드명을 간략하게 작성해도 된다. (1번 단점 보완)
 - Entity 클래스에 JPQL을 작성하지 않아도 된다. (2번 단점 보완)
 - JPQL에 오타가 있으면 어플리케이션 로딩 시점에 오류가 발생한다.
+
 ---
+
 #### 정리
 <정적 쿼리>
 <br>
@@ -124,7 +126,9 @@ List<Member> findMember(@Param("username") String username, @Param("age")
 <동적 쿼리>
 <br>
 - 동적 쿼리는 Querydsl 사용
+
 ---
+
 ### <@Query 사용하여 단순 값 조회>
 ```java
 // 회원명 조회
@@ -144,7 +148,9 @@ List<MemberDto> findMemberDto();
 List<Member> findByNames(@Param("names") List<String> names);
 ```
 - Collection 타입으로 in절에 바인딩할 수 있다.
+
 ---
+
 ### <반환 타입>
 - Spring Data JPA는 유연한 반환 타입을 지원한다.
 ```java
@@ -178,7 +184,9 @@ if (result.size() == 0) {
   - Spring Data JPA는 이 예외를 알아서 처리해서 null로 반환한다.
   - 예외가 터지는 것보다는 null이 넘어오는 것이 훨씬 낫다.
   - Java 8부터 Optional이 생겼으므로, Optional을 사용해서 처리하는 것이 좋다.
+
 ---
+
 ### <Paging & Sorting>
 - 검색 조건 : 나이
 - 정렬 조건 : 이름 - 내림차순
@@ -341,7 +349,9 @@ void paging() {
 Page<MemberDto> dtoPage = page.map(member -> new MemberDto(member.getId(), member.getName(), ...));
 ```
 - paging의 결과값을 map()을 통해 DTO로 변환해주기만 하면 된다.
+
 ---
+
 ### <벌크성 수정 쿼리>
 **<순수 JPA 활용한 벌크 연산>**
 ```java
@@ -381,3 +391,42 @@ int bulkAgePlus(@Param("age") int age);
 <권장법>
 1. 영속성 컨텍스트 안에 엔티티가 없는 상태에서 벌크 연산을 먼저 수행
 2. 영속성 컨텍스트에 엔티티가 존재한다면 벌크 연산 직후 영속성 컨텍스트 초기화
+
+---
+
+### <EntityGraph(엔티티그래프)>
+- 관련된 Entity들을 하나의 SQL로 모두 조회하는 방법
+- 지연 로딩 전략은 많은 경우에 N + 1 문제를 일으킨다.
+- 이를 해결하기 위해 JPA에서는 fetch join이라는 기능을 제공한다.
+```java
+// Member를 조회하면서 Member가 속한 Team도 같이 조회하는 쿼리
+// JPQL + fetch join 사용
+@Query("select m from Member m join fetch m.team")
+List<Member> findMemberFetchJoinTeam();
+```
+- Spring Data JPA는 JPA가 제공하는 EntityGraph 기능을 편리하게 사용할 수 있도록 한다.
+- Spring Data JPA는 @EntityGraph라는 어노테이션을 제공하는데, 이 어노테이션은 fetch join의 간편 버전이라고 생각하면 된다.
+**1. @EntityGraph + 공통 메서드 override**
+   ```java
+   @Override
+   @EntityGraph(attributePaths = {"team"})
+   List<Member> findAll();
+   ```
+   - 공통 메서드인 findAll()을 오버라이드한 후, @EntityGraph라는 어노테이션을 추가하고 attributePaths 속성에 함께 조회하고자 하는 객체를 지정하면 된다.
+**2. @EntityGraph + JPQL**
+   ```java
+   @EntityGraph(attributePaths = {"team"})
+   @Query("select m from Member m")
+   List<Member> findMemberEntityGraph();
+   ```
+   - JPQL과도 같이 사용할 수 있다.
+**3. @EntityGraph + 메서드명**
+   ```java
+   // 특정 username을 가진 Member를 해당 Member가 속한 Team과 함께 조회
+   @EntityGraph(attributePaths = {"team"})
+   List<Member> findEntityGraphByUsername(@Param("username") String username);
+   ```
+
+**<권장법>**
+- 간단한 쿼리의 경우 @EntityGraph 사용
+- 복잡한 쿼리의 경우 JPQL의 fetch join 사용
