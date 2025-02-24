@@ -367,4 +367,11 @@ class MemberRepositoryTest {
             System.out.println(member.getTeam().getName());
         }
     }
+
+    @Test
+    @DisplayName("custom repository 테스트")
+    void callCustom() {
+        // custom repository를 상속받은 memberRepository에서 custom 메서드가 잘 호출되는지 테스트
+        List<Member> result = memberRepository.findMemberCustom();
+    }
 }

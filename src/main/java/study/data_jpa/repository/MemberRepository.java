@@ -16,7 +16,7 @@ import java.util.Optional;
 /**
  * JpaRepository를 상속받으면, @Repository가 없어도 Spring Data JPA가 알아서 빈으로 등록해준다.
  */
-public interface MemberRepository extends JpaRepository<Member, Long> {
+public interface MemberRepository extends JpaRepository<Member, Long>, MemberRepositoryCustom {
 
     /**
      * Spring Data JPA는 메서드 이름만으로도 JPQL 쿼리를 생성할 수 있다.
