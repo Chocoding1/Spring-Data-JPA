@@ -430,3 +430,28 @@ List<Member> findMemberFetchJoinTeam();
 **<권장법>**
 - 간단한 쿼리의 경우 @EntityGraph 사용
 - 복잡한 쿼리의 경우 JPQL의 fetch join 사용
+
+---
+
+### <JPA Hint & Lock>
+**JPA Hint**
+- JPA 쿼리를 날릴 때, JPA 구현체인 하이버네이트한테 제공하는 힌트
+- 데이터베이스한테 날리는 SQL 힌트 X
+<사용 예>
+```java
+// MemberRepository
+@QueryHints(@QueryHint(name = "org.hibernate.readOnly", value = "true"))
+Member findReadOnlyByUsername(String username);
+```
+- 보통 엔티티를 조회하면 조회한 엔티티는 영속성 컨텍스트에 들어간다.
+- 그 때 JPA에는 Dirty Checking이라는 변경 감지 기능이 있기 때문에 조회한 엔티티에 대한 스냅샷, 즉 동일한 엔티티 객체를 하나 더 만든다.
+- 변경 감지 시에 원본 객체와 비교해야 하니까
+- 그러나 문제는 단순히 조회만 하는 쿼리를 날린다고 해도 객체를 두 개씩 만든다는 것이다.
+- 이렇게 되면 메모리를 더 먹는데, 이 때 사용할 수 있는 것이 위와 같은 JPA Hint 기능이다.
+- 메서드에 @QueryHint를 사용하여 readOnly 속성을 설정하면, 해당 메서드를 호출했을 때 조회용이라는 것을 인식하고 객체를 한 개만 만들어둔다.
+- 실무에서 이 정도 상황 외에는 크게 사용할 일 없다고 한다.
+<주의점>
+- 그렇다고 모든 조회용 쿼리에 readOnly JPA Hint를 사용한다고 해서 큰 성능 개선이 발생하지는 않는다.
+- 대부분의 성능 저하 원인은 복잡한 쿼리가 잘못 나가서 생기지, 조회용 쿼리에 객체를 두 개씩 만든다고 큰 성능 저하가 생기지는 않는다.
+- 따라서 진짜 중요하고 트래픽이 많은 몇몇의 api에 readOnly를 넣는 거지, 모든 조회용 쿼리에 넣는 것은 별 도움이 되지 않는다.
+- 즉 이런 경우는 성능 테스트 후에 결정하는 것이 좋다.
