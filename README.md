@@ -457,3 +457,59 @@ Member findReadOnlyByUsername(String username);
 - 대부분의 성능 저하 원인은 복잡한 쿼리가 잘못 나가서 생기지, 조회용 쿼리에 객체를 두 개씩 만든다고 큰 성능 저하가 생기지는 않는다.
 - 따라서 진짜 중요하고 트래픽이 많은 몇몇의 api에 readOnly를 넣는 거지, 모든 조회용 쿼리에 넣는 것은 별 도움이 되지 않는다.
 - 즉 이런 경우는 성능 테스트 후에 결정하는 것이 좋다.
+
+---
+
+### <사용자 정의 리포지토리>
+- Spring Data JPA 리포지토리는 인터페이스만 정의하고 구현체는 스프링이 자동으로 생성한다.
+- Spring Data JPA가 제공하는 인터페이스를 직접 구현하려면 인터페이스를 상속받아야 하니까 모든 기능을 다 구현해야 하는 비현실적인 문제가 발생한다.
+  - 즉 JpaRepository를 상속받은 MemberRepository 인터페이스를 만들어 거기에 메서드들을 정의했을 때, 그 중 Spring Data JPA가 아닌 내가 직접 구현한 기능을 쓰고 싶으면 MemberRepository라는 인터페이스를 상속받아야 하기 때문에 MemberRepository에 정의된 모든 메서드들을 구현해야 한다는 뜻
+- 하지만 Spring Data JPA 기능이 아니라 JDBC Template를 직접 활용한다던가 MyBatis나 Querydsl을 사용하는 이유로 인터페이스의 메서드를 직접 구현하고 싶을 때 사용하는 것이 바로 **사용자 정의 리포지토리**이다.
+- 실무에서 많이 쓰는 기능이다.
+
+**<사용법>**
+1. 사용자 정의 리포지토리 인터페이스를 새로 만든다.
+```java
+// MemberRepositoryCustom
+public interface MemberRepositoryCustom {
+List<Member> findMemberCustom();
+}
+```
+2. 사용자 정의 리포지토리 인터페이스의 구현 클래스를 만들고, 메서드를 구현한다.
+```java
+// MemberRepositoryCustomImpl
+@RequiredArgsConstructor
+public class MemberRepositoryCustomImpl implements MemberRepositoryCustom {
+
+    private final EntityManager em; // JPA 기능을 사용할 때 필요한 객체
+    // JPA가 아닌 다른 것을 사용하고 싶다면 그거에 맞는 객체를 사용하면 된다.
+    // ex) JDBC Template를 쓰고 싶다면 데이터베이스 커넥션을 사용
+    
+    @Override
+    public List<Member> findMemberCustom() {
+        return em.createQuery("select m from Member m", Member.class)
+                .getResultList();
+
+    }
+}
+```
+3. MemberRepository가 사용자 정의 리포지토리를 알아야 하기 때문에 MemberRepository에 추가해준다.
+```java
+// MemberRepository
+public interface MemberRepository extends JpaRepository<Member, Long>, MemberRepositoryCustom {
+    ~~~
+}
+```
+- MemberRepository를 상속받으면 해당 인터페이스에 존재하는 메서드들을 모두 구현해야 하는데, 따로 구현하고 싶은 메서드를 따로 뺐다 보니 해당 인터페이스에 존재하는 메서드만 구현할 수 있는 것이다.
+- 그리고 인터페이스인 MemberRepository와 결합하기 위해 사용자 정의 리포지토리도 인터페이스로 만들어준 것 같다.
+- 보통 Querydsl을 사용할 때 사용자 정의 리포지토리를 많이 사용한다고 한다.
+- 즉 간단한 쿼리는 Spring Data JPA가 제공하는 기본 기능을 사용하고, 복잡한 쿼리는 Querydsl을 사용해야 하는데, Querydsl은 직접 코드를 작성해야 하기 때문에 그럴 때 사용자 정의 리포지토리를 사용한다.
+
+**<규칙>**
+- 사용자 정의 리포지토리의 구현체 클래스의 이름은 **사용자 정의 인터페이스명 + Impl** 방식으로 짓는다.
+- 이렇게 규칙을 맞춰줘야 Spring Data JPA가 알아서 사용자 정의 메서드를 호출했을 때, 구현 메서드를 실행해준다.
+
+**<정리>**
+- 메서드명이나 @Query만 사용해서 해결이 되는 간단한 쿼리들은 Spring Data JPA 활용
+- 복잡한 동적 쿼리의 경우 Querydsl을 사용하거나, JDBC Template를 사용하는 경우에는 사용자 정의 리포지토리 활용
+- 실무에서 90%는 Querydsl을 구현할 때 주로 사용한다고 한다.
