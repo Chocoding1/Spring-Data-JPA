@@ -374,4 +374,25 @@ class MemberRepositoryTest {
         // custom repository를 상속받은 memberRepository에서 custom 메서드가 잘 호출되는지 테스트
         List<Member> result = memberRepository.findMemberCustom();
     }
+
+    @Test
+    @DisplayName("projections")
+    void projections() {
+        //given
+        Team teamA = new Team("teamA");
+        em.persist(teamA);
+
+        em.persist(new Member("m1", 0, teamA));
+        em.persist(new Member("m2", 0, teamA));
+
+        em.flush();
+        em.clear();
+
+        //when
+        List<UsernameOnly> result = memberRepository.findProjectionsByUsername("m1");
+
+        for (UsernameOnly usernameOnly : result) {
+            System.out.println("usernameOnly = " + usernameOnly);
+        }
+    }
 }
