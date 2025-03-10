@@ -406,6 +406,7 @@ List<Member> findMemberFetchJoinTeam();
 ```
 - Spring Data JPA는 JPA가 제공하는 EntityGraph 기능을 편리하게 사용할 수 있도록 한다.
 - Spring Data JPA는 @EntityGraph라는 어노테이션을 제공하는데, 이 어노테이션은 fetch join의 간편 버전이라고 생각하면 된다.
+
 **1. @EntityGraph + 공통 메서드 override**
    ```java
    @Override
@@ -413,6 +414,7 @@ List<Member> findMemberFetchJoinTeam();
    List<Member> findAll();
    ```
    - 공통 메서드인 findAll()을 오버라이드한 후, @EntityGraph라는 어노테이션을 추가하고 attributePaths 속성에 함께 조회하고자 하는 객체를 지정하면 된다.
+
 **2. @EntityGraph + JPQL**
    ```java
    @EntityGraph(attributePaths = {"team"})
@@ -420,6 +422,7 @@ List<Member> findMemberFetchJoinTeam();
    List<Member> findMemberEntityGraph();
    ```
    - JPQL과도 같이 사용할 수 있다.
+
 **3. @EntityGraph + 메서드명**
    ```java
    // 특정 username을 가진 Member를 해당 Member가 속한 Team과 함께 조회
